@@ -1,0 +1,7 @@
+node_modules
+npm-debug.log
+.DS_Store
+*.sublime-workspace
+*.idea
+/mnt/hdd0/sys_img
+/mnt/hdd0/tftp_root
