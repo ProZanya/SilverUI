@@ -1,131 +1,121 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Панель управления</title>
+    <title>Control Panel</title>
 </head>
 <body onload="loadFiles()">
 
-    <h1>Управление директориями</h1>
+    <h1>TFTP Server Management</h1>
     
-    <label for="file-select">Выберите директорию для обработки:</label>
+    <label for="file-select">Select operating system:</label>
     <select id="file-select">
-        <option value="">Загрузка директорий...</option>
+        <option value="">Loading...</option>
     </select>
     <br><br>
-    <div>
-        <input type="checkbox" id="detailed-mode">
-        <label for="detailed-mode">Режим детального логгирования (Демо)</label>
-    </div>
     <div style="margin-top: 10px;">
-        <label for="rename-input">Переименовать файл внутри директории:</label><br>
-        <input type="text" id="rename-input" placeholder="например, original.txt">
-        <small>(Будет переименован в `install`)</small>
+        <label for="rename-input">Rename installation file:</label><br>
+        <input type="text" id="rename-input" placeholder="e.g., pxelinux.0">
+        <small>(Will be renamed to `install`)</small>
     </div>
     <br>
-    <button id="run-button">Выполнить копирование директории</button>
+    <button id="run-button">Copy to TFTP Server Root</button>
     <hr>
     <div>
         <button id="clear-button" style="background-color: #ffcccc; color: #a00;">
-            ОЧИСТИТЬ родительскую директорию назначения
+            CLEAR TFTP Server Root
         </button>
     </div>
     <hr style="margin-top: 20px;">
-    <h2>Скачать и распаковать архив (.zip)</h2>
+    <h2>Download OS (.zip/.tar.gz)</h2>
     
     <div>
-        <label for="download-url">URL архива (.zip):</label><br>
+        <label for="download-url">Archive URL:</label><br>
         <input type="text" id="download-url" style="width: 400px;" placeholder="https://example.com/archive.zip">
     </div>
     <div style="margin-top: 10px;">
-        <label for="new-dir-name">Имя для новой директории (в `sys_img`):</label><br>
-        <input type="text" id="new-dir-name" placeholder="например, NewProject">
+        <label for="new-dir-name">Operating system name:</label><br>
+        <input type="text" id="new-dir-name" placeholder="e.g., NewProject">
     </div>
     <br>
     <button id="download-button" style="background-color: #cceeff;">
-        Скачать и распаковать
+        Download and Extract
     </button>
-    <h3>Статус:</h3>
+    <h3>Status:</h3>
     <pre id="response-output"></pre>
 
 
     <script>
-        // Элементы управления копированием
         const selectMenu = document.getElementById('file-select');
         const checkboxDetailed = document.getElementById('detailed-mode');
         const inputRename = document.getElementById('rename-input');
         const buttonRun = document.getElementById('run-button');
         const buttonClear = document.getElementById('clear-button');
         const output = document.getElementById('response-output');
-
-        // НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ СКАЧИВАНИЯ
         const inputUrl = document.getElementById('download-url');
         const inputDirName = document.getElementById('new-dir-name');
         const buttonDownload = document.getElementById('download-button');
 
        // =========================================================
-        // ФУНКЦИЯ ЗАГРУЗКИ (теперь '/api/get-dirs')
+        // LOAD FILES FUNCTION (now '/api/get-dirs')
         // =========================================================
         async function loadFiles() {
-            output.textContent = 'Загрузка списка директорий...';
+            output.textContent = 'Loading directory list...';
             try {
-                // ИЗМЕНЕНО: Запрашиваем новый API
                 const response = await fetch('/api/get-dirs'); 
                 
                 if (!response.ok) {
                     const errorData = await response.json(); 
-                    output.textContent = `❌ Ошибка сервера (${response.status}): ${errorData.message || 'Неизвестная ошибка'}`;
+                    output.textContent = `❌ Server error (${response.status}): ${errorData.message || 'Unknown error'}`;
                     return;
                 }
                 const data = await response.json();
                 
                 if (data.success && data.files.length > 0) {
                     selectMenu.innerHTML = ''; 
-                    data.files.forEach(dirName => { // 'files' - это теперь массив имен директорий
+                    data.files.forEach(dirName => {
                         const option = document.createElement('option');
                         option.value = dirName;
                         option.textContent = dirName;
                         selectMenu.appendChild(option);
                     });
-                    output.textContent = `Загружено ${data.files.length} директорий.`;
+                    output.textContent = `Loaded ${data.files.length} operating systems.`;
                 } else if (data.success && data.files.length === 0) {
-                    selectMenu.innerHTML = '<option value="">Нет директорий для обработки</option>';
-                    output.textContent = 'Исходная директория пуста.';
+                    selectMenu.innerHTML = '<option value="">Library is empty</option>';
+                    output.textContent = 'Operating system library is empty.';
                 } else {
-                    output.textContent = `Ошибка при загрузке: ${data.message}`;
+                    output.textContent = `Load error: ${data.message}`;
                 }
             } catch (error) {
-                output.textContent = 'Ошибка подключения к серверу API.';
+                output.textContent = 'Error connecting to API server.';
             }
         }
 
         // =========================================================
-        // ОБРАБОТЧИК КНОПKI КОПИРОВАНИЯ (ОБНОВЛЕН)
+        // COPY BUTTON HANDLER
         // =========================================================
         buttonRun.addEventListener('click', async () => {
             const selectedDir = selectMenu.value;
-            const fileToRename = inputRename.value; // Получаем значение из поля ввода
+            const fileToRename = inputRename.value;
             
             if (!selectedDir) {
-                output.textContent = '⚠️ Пожалуйста, выберите директорию для копирования.';
+                output.textContent = '⚠️ Please select an operating system to copy.';
                 return;
             }
 
             const options = {
                 detailed: checkboxDetailed.checked
-                // noRename больше нет
             };
 
-            output.textContent = `Обработка директории "${selectedDir}"...`;
+            output.textContent = `Processing "${selectedDir}"...`;
 
             try {
-                // ИЗМЕНЕНО: Вызываем новый API
                 const response = await fetch('/api/process-directory', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        dirname: selectedDir,   // Имя директории
-                        renameFile: fileToRename, // Имя файла для переименования
+                        dirname: selectedDir,   // Directory name
+                        renameFile: fileToRename, // File name to rename
                         options: options
                     })
                 });
@@ -133,33 +123,32 @@
                 const result = await response.json();
                 if (response.ok) {
                     output.textContent = result.message;
-                    loadFiles(); // Перезагружаем список
+                    loadFiles(); // Reload the list
                 } else {
-                    output.textContent = `❌ Ошибка обработки: ${result.message}`;
+                    output.textContent = `❌ Processing error: ${result.message}`;
                 }
 
             } catch (error) {
-                output.textContent = 'Критическая ошибка при отправке запроса.';
+                output.textContent = 'Critical error while sending request.';
             }
         });
 
         // =========================================================
-        // НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ ОЧИСТКИ
+        // CLEAR BUTTON HANDLER
         // =========================================================
         buttonClear.addEventListener('click', async () => {
             
-            // ⚠️ Обязательное подтверждение
-            if (!confirm('Вы уверены, что хотите ПОЛНОСТЬЮ ОЧИСТИТЬ директорию назначения? Эту операцию нельзя отменить.')) {
-                output.textContent = 'Операция очистки отменена.';
+            if (!confirm('Are you sure you want to CLEAR the TFTP server root?')) {
+                output.textContent = 'Clear operation canceled.';
                 return;
             }
 
-            output.textContent = 'Очистка директории...';
+            output.textContent = 'Clearing...';
 
             try {
-                // Отправляем запрос на новый API-маршрут
+                // Send request to API route
                 const response = await fetch('/api/clear-directory', {
-                    method: 'POST' // Тело не нужно, сам факт запроса - это команда
+                    method: 'POST'
                 });
 
                 const result = await response.json();
@@ -167,15 +156,15 @@
                 if (response.ok) {
                     output.textContent = result.message;
                 } else {
-                    output.textContent = `❌ Ошибка очистки: ${result.message}`;
+                    output.textContent = `❌ Clear error: ${result.message}`;
                 }
 
             } catch (error) {
-                output.textContent = 'Критическая ошибка при отправке запроса на очистку.';
+                output.textContent = 'Critical error while sending clear request.';
             }
         });
 		// =========================================================
-        // НОВЫЙ ОБРАБОТЧИК ДЛЯ КНОПКИ СКАЧИВАНИЯ
+        // DOWNLOAD BUTTON HANDLER
         // =========================================================
         buttonDownload.addEventListener('click', async () => {
             
@@ -183,11 +172,11 @@
             const dirName = inputDirName.value;
 
             if (!url || !dirName) {
-                output.textContent = '⚠️ URL и Имя новой директории обязательны.';
+                output.textContent = '⚠️ URL and OS name are required.';
                 return;
             }
 
-            output.textContent = `Отправка запроса на скачивание "${url}"...`;
+            output.textContent = `Sending download request for "${url}"...`;
 
             try {
                 const response = await fetch('/api/download-and-unpack', {
@@ -203,17 +192,17 @@
 
                 if (response.ok) {
                     output.textContent = result.message;
-                    // ОБНОВЛЯЕМ СПИСОК ДИРЕКТОРИЙ!
+                    // UPDATE DIRECTORY LIST!
                     loadFiles(); 
-                    // Очищаем поля ввода
+                    // Clear input fields
                     inputUrl.value = '';
                     inputDirName.value = '';
                 } else {
-                    output.textContent = `❌ Ошибка: ${result.message}`;
+                    output.textContent = `❌ Error: ${result.message}`;
                 }
 
             } catch (error) {
-                output.textContent = 'Критическая ошибка при отправке запроса на скачивание.';
+                output.textContent = 'Critical error while sending download request.';
             }
         });		
     </script>
