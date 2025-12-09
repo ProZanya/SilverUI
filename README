@@ -1,8 +1,0 @@
-Web interface for the TFTP server
-Written in JavaScript
-
-Can move OS installation files from its library to the root of the TFTP server, rename them, and download and unpack archives with new OS versions from the internet.
-
-All configuration is done in config.ini in the project root.
-
-indexru.html is the Russian version of the site. Replace the standard index.html with it to get the Russian language version.
